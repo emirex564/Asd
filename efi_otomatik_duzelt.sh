@@ -26,6 +26,14 @@ sari()    { printf "\033[33m%s\033[0m\n" "$1"; }
 dur()     { kirmizi "HATA: $1"; exit 1; }
 
 # ---------- 1. EFI bölümünü bul ----------
+# Önce bulunduğun klasöre bakar (cd ile EFI'ye girdiysen onu kullanır)
+OC=""
+for c in "$PWD/EFI/OC" "$PWD/OC" "$PWD"; do
+  if [ -f "$c/config.plist" ] && [ -d "$c/Kexts" ]; then OC="$c"; break; fi
+done
+if [ -n "$OC" ]; then
+  yesil "Bulundugun klasor kullaniliyor: $OC"
+else
 echo "EFI bolumu araniyor..."
 BOOTPATH="$(nvram 4D1FDA02-38C7-4A6A-9CC6-4BCCA8B30102:boot-path 2>/dev/null | cut -f2-)"
 UUID="$(echo "$BOOTPATH" | sed -nE 's/.*GPT,([0-9A-Fa-f-]{36}).*/\1/p')"
@@ -44,6 +52,7 @@ echo "EFI bolumu: $EFIDEV"
 sudo diskutil mount "$EFIDEV" >/dev/null || dur "EFI baglanamadi."
 MNT="$(diskutil info "$EFIDEV" | awk -F': *' '/Mount Point/ {print $2; exit}')"
 OC="$MNT/EFI/OC"
+fi
 CFG="$OC/config.plist"
 [ -f "$CFG" ] || dur "$CFG bulunamadi."
 yesil "Bulundu: $CFG"
