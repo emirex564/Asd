@@ -1,0 +1,51 @@
+# GitHub Actions: Feixiao (rtw88.kext) derleme - Realtek RTL8821CE Wi-Fi için
+# Kullanım:
+#   1. GitHub'da yeni boş bir repo aç (ör. vostro-kexts)
+#   2. Bu dosyayı repo içine şu yola koy:  .github/workflows/build-feixiao.yml
+#   3. Repo > Actions > "Build Feixiao" > Run workflow
+#   4. Bitince sayfanın altındaki "Artifacts" kısmından rtw88-kext.zip'i indir
+name: Build Feixiao
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Kaynaklari indir
+        run: |
+          mkdir -p src && cd src
+          git clone --recursive https://github.com/thegwchr/Feixiao.git
+          git clone --depth 1 https://github.com/thegwchr/rtw88-stable.git
+          cd Feixiao
+          git submodule update --init --recursive
+          echo "Feixiao commit: $(git rev-parse --short HEAD)"
+
+      - name: MacKernelSDK
+        run: |
+          cd src/Feixiao
+          if [ ! -d MacKernelSDK ]; then
+            git clone --depth 1 https://github.com/acidanthera/MacKernelSDK.git
+          fi
+          ls
+
+      - name: Derle
+        run: |
+          cd src/Feixiao
+          make all 2>&1 | tee ../../build.log
+
+      - name: Ciktiyi topla
+        if: always()
+        run: |
+          mkdir -p out
+          cp -R src/Feixiao/build/out/* out/ 2>/dev/null || true
+          cp build.log out/ 2>/dev/null || true
+          ls -la out
+
+      - name: Yukle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rtw88-kext
+          path: out/
